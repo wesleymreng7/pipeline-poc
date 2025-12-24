@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Deploy to Vercel (Preview)
-        run: npx --yes vercel@latest deploy --yes
+        run: npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
