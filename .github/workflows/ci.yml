@@ -13,6 +13,7 @@ jobs:
 
   deploy-preview:
     runs-on: ubuntu-latest
+    environment: production
     needs: ci
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
 
@@ -30,9 +31,8 @@ jobs:
         run: npm ci
 
       - name: Deploy to Vercel (Preview)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--yes'
+        run: npx --yes vercel@latest deploy --yes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
