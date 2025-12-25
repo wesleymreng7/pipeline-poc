@@ -35,6 +35,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Initialize version from package.json if no tags exist
+        id: init_version
+        run: |
+          # Check if any tags exist
+          if [ -z "$(git tag -l)" ]; then
+            # Read version from package.json
+            CURRENT_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('./package.json', 'utf8')).version")
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "No tags found. Will initialize with version $CURRENT_VERSION from package.json"
+          else
+            echo "Tags already exist, skipping initialization"
+          fi
+
+      - name: Create initial tag if needed
+        if: steps.init_version.outputs.version != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.init_version.outputs.version }}" -m "chore(release): ${{ steps.init_version.outputs.version }}"
+          git push origin "v${{ steps.init_version.outputs.version }}"
+
       - name: Semantic Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
