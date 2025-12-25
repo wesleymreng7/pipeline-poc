@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/wesleymreng7/pipeline-poc/compare/v0.1.0...v0.2.0) (2025-12-25)
+
+
+### Features
+
+* slack notifications ([518cb5d](https://github.com/wesleymreng7/pipeline-poc/commit/518cb5dacd57bb0f3497c65a39a52012217becd0))
+
 # 1.0.0 (2025-12-24)
 
 
