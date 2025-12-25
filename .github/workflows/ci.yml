@@ -31,8 +31,32 @@ jobs:
         run: npm ci
 
       - name: Deploy to Vercel (Preview)
-        run: npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN"
+        id: deploy
+        run: |
+          DEPLOYMENT_OUTPUT=$(npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN" 2>&1)
+          echo "$DEPLOYMENT_OUTPUT"
+          # Extract URL from Vercel output (format: "https://project-xxx.vercel.app")
+          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | head -1 || echo "https://vercel.com")
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Preview deployed to: $DEPLOYMENT_URL"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Slack Notification - Preview Deployed
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 Preview Environment Updated
+            *Branch:* `develop`
+            *Commit:* ${{ github.sha }}
+            *Author:* ${{ github.actor }}
+            *Deployment URL:* <${{ steps.deploy.outputs.url }}|View Preview>
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
+          fields: |
+            commit,repo,ref,workflow,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()

@@ -61,9 +61,58 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
+      - name: Get Release Version
+        id: release_version
+        run: |
+          if [ -f package.json ]; then
+            VERSION=$(node -p "JSON.parse(require('fs').readFileSync('./package.json', 'utf8')).version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy to Vercel (Production)
-        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+        id: deploy
+        run: |
+          DEPLOYMENT_OUTPUT=$(npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1)
+          echo "$DEPLOYMENT_OUTPUT"
+          # Extract URL from Vercel output (format: "https://project-xxx.vercel.app")
+          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | head -1 || echo "https://vercel.com")
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Production deployed to: $DEPLOYMENT_URL"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Slack Notification - Production Deployed
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🎉 Production Deployment Successful
+            *Version:* ${{ steps.release_version.outputs.version }}
+            *Branch:* `main`
+            *Commit:* ${{ github.sha }}
+            *Author:* ${{ github.actor }}
+            *Deployment URL:* <${{ steps.deploy.outputs.url }}|View Production>
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
+          fields: |
+            commit,repo,ref,workflow,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: success()
+
+      - name: Slack Notification - Production Deployment Failed
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            ❌ Production Deployment Failed
+            *Branch:* `main`
+            *Commit:* ${{ github.sha }}
+            *Author:* ${{ github.actor }}
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
+          fields: |
+            commit,repo,ref,workflow,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()

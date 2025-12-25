@@ -1,0 +1,27 @@
+name: Slack PR Notification
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'develop'
+    steps:
+      - name: Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            📝 New PR to `develop` branch
+            *PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}*
+            👤 Author: ${{ github.event.pull_request.user.login }}
+            🔗 <${{ github.event.pull_request.html_url }}|View PR>
+            📊 Status: ${{ github.event.action }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
+
