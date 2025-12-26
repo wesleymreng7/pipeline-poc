@@ -1,20 +1,20 @@
-name: CI
+name: Deploy Preview
 
 on:
   pull_request:
   push:
-    branches: [develop, main]
+    branches: [develop]
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci-reusable.yml
+  build-and-test:
+    uses: ./.github/workflows/build-test.yml
     with:
       node_version: '22'
 
   deploy-preview:
     runs-on: ubuntu-latest
     environment: production
-    needs: ci
+    needs: build-and-test
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
 
     steps:
@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Deploy to Vercel (Preview)
-        id: deploy
+        id: deploy-to-vercel
         run: |
           DEPLOYMENT_OUTPUT=$(npx --yes vercel@latest deploy --yes --token "$VERCEL_TOKEN" 2>&1)
           echo "$DEPLOYMENT_OUTPUT"
@@ -53,7 +53,7 @@ jobs:
             *Branch:* `develop`
             *Commit:* ${{ github.sha }}
             *Author:* ${{ github.actor }}
-            *Deployment URL:* <${{ steps.deploy.outputs.url }}|View Preview>
+            *Deployment URL:* <${{ steps.deploy-to-vercel.outputs.url }}|View Preview>
             *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
           fields: |
             commit,repo,ref,workflow,message

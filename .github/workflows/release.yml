@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci-reusable.yml
+  build-and-test:
+    uses: ./.github/workflows/build-test.yml
     with:
       node_version: '22'
 
   release:
     runs-on: ubuntu-latest
     environment: production
-    needs: ci
+    needs: build-and-test
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
@@ -36,7 +36,7 @@ jobs:
         run: npm ci
 
       - name: Initialize version from package.json if no tags exist
-        id: init_version
+        id: initialize-version
         run: |
           # Check if any tags exist
           if [ -z "$(git tag -l)" ]; then
@@ -49,12 +49,12 @@ jobs:
           fi
 
       - name: Create initial tag if needed
-        if: steps.init_version.outputs.version != ''
+        if: steps.initialize-version.outputs.version != ''
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.init_version.outputs.version }}" -m "chore(release): ${{ steps.init_version.outputs.version }}"
-          git push origin "v${{ steps.init_version.outputs.version }}"
+          git tag -a "v${{ steps.initialize-version.outputs.version }}" -m "chore(release): ${{ steps.initialize-version.outputs.version }}"
+          git push origin "v${{ steps.initialize-version.outputs.version }}"
 
       - name: Semantic Release
         env:
@@ -62,7 +62,7 @@ jobs:
         run: npx semantic-release
 
       - name: Get Release Version
-        id: release_version
+        id: get-release-version
         run: |
           if [ -f package.json ]; then
             VERSION=$(node -p "JSON.parse(require('fs').readFileSync('./package.json', 'utf8')).version")
@@ -70,7 +70,7 @@ jobs:
           fi
 
       - name: Deploy to Vercel (Production)
-        id: deploy
+        id: deploy-to-vercel
         run: |
           DEPLOYMENT_OUTPUT=$(npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1)
           echo "$DEPLOYMENT_OUTPUT"
@@ -89,11 +89,11 @@ jobs:
           status: ${{ job.status }}
           text: |
             🎉 Production Deployment Successful
-            *Version:* ${{ steps.release_version.outputs.version }}
+            *Version:* ${{ steps.get-release-version.outputs.version }}
             *Branch:* `main`
             *Commit:* ${{ github.sha }}
             *Author:* ${{ github.actor }}
-            *Deployment URL:* <${{ steps.deploy.outputs.url }}|View Production>
+            *Deployment URL:* <${{ steps.deploy-to-vercel.outputs.url }}|View Production>
             *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
           fields: |
             commit,repo,ref,workflow,message
