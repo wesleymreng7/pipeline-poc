@@ -1,13 +1,19 @@
-name: Slack PR Notification
+name: CI
 
 on:
   pull_request:
     branches:
       - develop
+      - main
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  notify:
+  build-and-test:
+    uses: ./.github/workflows/build-test.yml
+    with:
+      node_version: '22'
+
+  slack-notification:
     runs-on: ubuntu-latest
     environment: production
     if: github.event.pull_request.base.ref == 'develop'
