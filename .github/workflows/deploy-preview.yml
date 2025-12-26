@@ -1,9 +1,9 @@
 name: Deploy Preview
 
 on:
-  pull_request:
   push:
-    branches: [develop]
+    branches:
+      - develop
 
 jobs:
   build-and-test:
@@ -13,9 +13,8 @@ jobs:
 
   deploy-preview:
     runs-on: ubuntu-latest
-    environment: production
+    environment: preview
     needs: build-and-test
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
 
     steps:
       - name: Checkout
