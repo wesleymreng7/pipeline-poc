@@ -1,3 +1,15 @@
+# [0.4.0](https://github.com/wesleymreng7/pipeline-poc/compare/v0.3.0...v0.4.0) (2025-12-26)
+
+
+### Bug Fixes
+
+* fix environment ([ca8484e](https://github.com/wesleymreng7/pipeline-poc/commit/ca8484ebd304b1494fbfc545833bd3048008a210))
+
+
+### Features
+
+* new feature ([d06ccf3](https://github.com/wesleymreng7/pipeline-poc/commit/d06ccf31bc895f30be84fde3a7e1783424a47f4e))
+
 # [0.3.0](https://github.com/wesleymreng7/pipeline-poc/compare/v0.2.0...v0.3.0) (2025-12-26)
 
 
