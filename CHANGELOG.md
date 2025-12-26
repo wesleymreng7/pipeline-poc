@@ -1,3 +1,16 @@
+# [0.3.0](https://github.com/wesleymreng7/pipeline-poc/compare/v0.2.0...v0.3.0) (2025-12-26)
+
+
+### Bug Fixes
+
+* fix CI ([3e2485d](https://github.com/wesleymreng7/pipeline-poc/commit/3e2485d47d2ed94672e46f6d0f42f9972acad670))
+
+
+### Features
+
+* pipeline improvements ([9269bd3](https://github.com/wesleymreng7/pipeline-poc/commit/9269bd36ff112bd0712ce9980e4e3f4a72ffbc0f))
+* rollback ([a3eed98](https://github.com/wesleymreng7/pipeline-poc/commit/a3eed981f916249cf4061b722179025f589e7b2d))
+
 # [0.2.0](https://github.com/wesleymreng7/pipeline-poc/compare/v0.1.0...v0.2.0) (2025-12-25)
 
 
