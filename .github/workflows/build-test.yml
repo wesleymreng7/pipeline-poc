@@ -1,5 +1,4 @@
-name: CI (Reusable)
-
+name: Build and Test
 on:
   workflow_call:
     inputs:
@@ -11,13 +10,13 @@ on:
     outputs:
       success:
         description: 'Whether CI checks passed'
-        value: ${{ jobs.ci.outputs.success }}
+        value: ${{ jobs.build-and-test.outputs.success }}
 
 jobs:
-  ci:
+  build-and-test:
     runs-on: ubuntu-latest
     outputs:
-      success: ${{ steps.ci-result.outputs.success }}
+      success: ${{ steps.build-and-test-result.outputs.success }}
 
     steps:
       - name: Checkout
@@ -47,6 +46,6 @@ jobs:
         run: npm run build
 
       - name: Set success output
-        id: ci-result
+        id: build-and-test-result
         run: echo "success=true" >> $GITHUB_OUTPUT
 

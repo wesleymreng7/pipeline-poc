@@ -1,4 +1,4 @@
-name: CI
+name: Deploy Preview
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci:
-    uses: ./.github/workflows/ci-reusable.yml
+    uses: ./.github/workflows/build-test.yml
     with:
       node_version: '22'
 
