@@ -15,6 +15,7 @@ jobs:
 
   slack-notification:
     runs-on: ubuntu-latest
+    environment: production
     if: github.event.pull_request.base.ref == 'develop'
     steps:
       - name: Slack Notification
