@@ -16,14 +16,14 @@ jobs:
   slack-notification:
     runs-on: ubuntu-latest
     environment: production
-    if: github.event.pull_request.base.ref == 'develop'
+    if: github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'main'
     steps:
       - name: Slack Notification
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           text: |
-            📝 New PR to `develop` branch
+            📝 New PR to `{{ github.event.pull_request.base.ref }}` branch
             *PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}*
             👤 Author: ${{ github.event.pull_request.user.login }}
             🔗 <${{ github.event.pull_request.html_url }}|View PR>
