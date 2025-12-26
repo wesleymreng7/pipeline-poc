@@ -1,0 +1,128 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag/Version to rollback to (e.g., v1.0.0)'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: false
+        type: string
+        default: 'Production rollback'
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout specific tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate tag exists
+        id: validate_tag
+        run: |
+          TAG=${{ github.event.inputs.tag }}
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "❌ Error: Tag $TAG does not exist"
+            exit 1
+          fi
+          COMMIT_SHA=$(git rev-parse "$TAG")
+          echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "✅ Tag $TAG found at commit $COMMIT_SHA"
+
+      - name: Get current version
+        id: current_version
+        run: |
+          TAG=${{ github.event.inputs.tag }}
+          # Remove 'v' prefix if present
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Rolling back to version: $VERSION"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify build
+        run: |
+          npm run build
+          echo "✅ Build successful for rollback version"
+
+      - name: Deploy to Vercel (Production Rollback)
+        id: deploy
+        run: |
+          DEPLOYMENT_OUTPUT=$(npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1)
+          echo "$DEPLOYMENT_OUTPUT"
+          DEPLOYMENT_URL=$(echo "$DEPLOYMENT_OUTPUT" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | head -1 || echo "https://vercel.com")
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Rollback deployed to: $DEPLOYMENT_URL"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Create rollback tag (optional)
+        id: create_rollback_tag
+        continue-on-error: true
+        run: |
+          CURRENT_TAG=${{ github.event.inputs.tag }}
+          ROLLBACK_TAG="${CURRENT_TAG}-rollback-$(date +%Y%m%d-%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$ROLLBACK_TAG" -m "Rollback to $CURRENT_TAG: ${{ github.event.inputs.reason }}"
+          git push origin "$ROLLBACK_TAG"
+          echo "tag=$ROLLBACK_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Created rollback tag: $ROLLBACK_TAG"
+
+      - name: Slack Notification - Rollback Successful
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            ⏪ Production Rollback Executed
+            *Rolled back to:* `${{ github.event.inputs.tag }}`
+            *Version:* ${{ steps.current_version.outputs.version }}
+            *Commit:* ${{ steps.validate_tag.outputs.sha }}
+            *Reason:* ${{ github.event.inputs.reason }}
+            *Deployed by:* ${{ github.actor }}
+            *Deployment URL:* <${{ steps.deploy.outputs.url }}|View Production>
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
+          fields: |
+            commit,repo,ref,workflow,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: success()
+
+      - name: Slack Notification - Rollback Failed
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            ❌ Production Rollback Failed
+            *Attempted rollback to:* `${{ github.event.inputs.tag }}`
+            *Reason:* ${{ github.event.inputs.reason }}
+            *Deployed by:* ${{ github.actor }}
+            *Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>
+          fields: |
+            commit,repo,ref,workflow,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
+
